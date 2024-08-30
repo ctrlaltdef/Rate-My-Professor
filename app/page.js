@@ -10,29 +10,30 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-
+  
   const sendMessage = async () => {
     if (!message.trim()) return; // Prevent sending empty messages
 
     setLoading(true);
 
-    // Update messages state with new user message
+    // Update messages state with the new user message
     setMessages(prevMessages => [
       ...prevMessages,
       { role: "user", content: message },
-      { role: "assistant", content: '' }
+      { role: "assistant", content: '' } // Add placeholder for assistant's response
     ]);
 
-    
+    // Clear the user input field
     setMessage('');
 
     try {
-      // Send the message to the server
+      // Send the updated messages to the server
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        // Use the updated messages state
         body: JSON.stringify([...messages, { role: "user", content: message }])
       });
 
@@ -49,8 +50,7 @@ export default function Home() {
           return result;
         }
         const text = decoder.decode(value || new Uint8Array(), { stream: true });
-        
-        
+
         setMessages(prevMessages => {
           let lastMessage = prevMessages[prevMessages.length - 1];
           let otherMessages = prevMessages.slice(0, prevMessages.length - 1);
@@ -65,10 +65,10 @@ export default function Home() {
 
       await readStream();
     } catch (error) {
-      console.error('Error sending message:', error);
       setLoading(false);
     }
   };
+
 
   // Auto-scroll to the bottom of the chat
   useEffect(() => {
