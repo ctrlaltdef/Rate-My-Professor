@@ -1,150 +1,108 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { Box, Button, Stack, TextField, CircularProgress } from '@mui/material';
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { SignedOut, SignedIn, UserButton, useAuth } from '@clerk/nextjs';
+import { motion } from 'framer-motion'; // Ensure you have framer-motion installed if you're using it
+import Head from 'next/head'; // Make sure to import Head from 'next/head'
+import { FaSignInAlt, FaUserPlus } from 'react-icons/fa';
 
 export default function Home() {
-  const [messages, setMessages] = useState([{
-    role: "assistant",
-    content: "Hi! I'm the Rate My Professor support assistant. How can I help you today?"
-  }]);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-  
-  const sendMessage = async () => {
-    if (!message.trim()) return; // Prevent sending empty messages
+  const router = useRouter();
+  const { isSignedIn } = useAuth();
 
-    setLoading(true);
-
-    // Update messages state with the new user message
-    setMessages(prevMessages => [
-      ...prevMessages,
-      { role: "user", content: message },
-      { role: "assistant", content: '' } // Add placeholder for assistant's response
-    ]);
-
-    // Clear the user input field
-    setMessage('');
-
-    try {
-      // Send the updated messages to the server
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // Use the updated messages state
-        body: JSON.stringify([...messages, { role: "user", content: message }])
-      });
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      let result = '';
-
-      // Read the response stream
-      const readStream = async () => {
-        const { done, value } = await reader.read();
-        if (done) {
-          setLoading(false);
-          return result;
-        }
-        const text = decoder.decode(value || new Uint8Array(), { stream: true });
-
-        setMessages(prevMessages => {
-          let lastMessage = prevMessages[prevMessages.length - 1];
-          let otherMessages = prevMessages.slice(0, prevMessages.length - 1);
-          return [
-            ...otherMessages,
-            { ...lastMessage, content: lastMessage.content + text }
-          ];
-        });
-
-        return readStream();
-      };
-
-      await readStream();
-    } catch (error) {
-      setLoading(false);
+  const handleGetStartedClick = () => {
+    if (isSignedIn) {
+      router.push('/chatbot');
+    } else {
+      router.push('/sign-in');
     }
   };
 
+  const textVariant = (delay) => ({
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        delay,
+        duration: 0.5,
+      },
+    },
+  });
 
-  // Auto-scroll to the bottom of the chat
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const slideUp = (delay) => ({
+    hidden: { y: 50, opacity: 0 },
+    show: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        delay,
+        duration: 0.5,
+      },
+    },
+  });
 
   return (
-    <Box
-      width="100vw"
-      height="100vh"
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="center"
-    >
-      <Stack
-        direction={'column'}
-        width="500px"
-        height="700px"
-        border="1px solid black"
-        borderRadius={4}
-        p={2}
-        spacing={3}
-        bgcolor="background.paper"
-        boxShadow={3}
-      >
-        <Stack
-          direction={'column'}
-          spacing={2}
-          flexGrow={1}
-          overflow="auto"
-          maxHeight="100%"
+    <div className="max-w-full mx-auto bg-[#0d1321]">
+      <Head>
+        <title>RAG Bot</title>
+        <meta
+          name="description"
+          content="Your one stop restaraunt reviews centre."
+        />
+      </Head>
+
+      {/* Navbar */}
+      <nav className="bg-[#11192c] bg-opacity-90 p-5 flex justify-between items-center w-full sticky top-0 z-50">
+        <a
+          href="/"
+          className="text-[#f0ebd8] text-xl font-bold hover:text-[#748cab]"
         >
-          {messages.map((message, index) => (
-            <Box
-              key={index}
-              display="flex"
-              justifyContent={
-                message.role === 'assistant' ? 'flex-start' : 'flex-end'
-              }
-            >
-              <Box
-                bgcolor={
-                  message.role === 'assistant'
-                    ? 'primary.main'
-                    : 'secondary.main'
-                }
-                color="white"
-                borderRadius={16}
-                p={3}
-                boxShadow={2}
-                maxWidth="75%"
+          RAG Bot
+        </a>
+        <div>
+          <SignedOut>
+            <div className="flex justify-center items-center">
+              <a
+                href="/sign-in"
+                className="text-[#f0ebd8] flex items-center font-semibold hover:text-[#748cab] mr-4"
               >
-                {message.content}
-              </Box>
-            </Box>
-          ))}
-          <div ref={messagesEndRef} />
-        </Stack>
-        <Stack direction={'row'} spacing={2}>
-          <TextField
-            label="Message"
-            fullWidth
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' ? sendMessage() : null}
-          />
-          <Button 
-            variant="contained" 
-            onClick={sendMessage} 
-            disabled={loading}
+                <FaSignInAlt className="mr-2" /> Login
+              </a>
+              <a
+                href="/sign-up"
+                className="text-[#f0ebd8] flex items-center font-semibold hover:text-[#748cab]"
+              >
+                <FaUserPlus className="mr-2" /> Sign Up
+              </a>
+            </div>
+          </SignedOut>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
+        </div>
+      </nav>
+
+      {/* Welcome Section */}
+      <section className="text-center">
+        <motion.div variants={textVariant(0.1)} initial="hidden" animate="show">
+          <h1 className="font-black bg-clip-text text-transparent bg-gradient-to-t from-[#748cab] to-[#f0ebd8] lg:text-[70px] sm:text-[60px] xs:text-[50px] text-[40px] lg:leading-[98px] mb-2 text-center hover:text-opacity-90">
+            Welcome to RAG Bot
+          </h1>
+        </motion.div>
+        <motion.div variants={slideUp(0.2)} initial="hidden" animate="show">
+          <div className="flex justify-center items-center">
+            <p className="text-[#f0ebd8] font-medium text-center font-sm lg:text-[22px] sm:text-[18px] xs:text-[16px] text-[16px] lg:leading-[40px] max-w-2xl">
+              Get reviews on any restaraunt in seconds!
+            </p>
+          </div>
+          <button
+            className="hover:bg-[#f0ebd8] bg-[#1d2d44] text-[#f0ebd8] hover:text-[#1d2d44] font-bold py-3 px-8 mt-5 rounded"
+            onClick={handleGetStartedClick}
           >
-            {loading ? <CircularProgress size={24} /> : 'Send'}
-          </Button>
-        </Stack>
-      </Stack>
-    </Box>
+            Get Started
+          </button>
+        </motion.div>
+      </section>
+    </div>
   );
 }
